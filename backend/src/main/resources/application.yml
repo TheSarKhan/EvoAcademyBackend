@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: backend
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+
+  datasource:
+    first:
+      url: jdbc:postgresql://localhost:5450/User
+      username: root
+      password: root
+    second:
+      url: jdbc:postgresql://localhost:5451/Content
+      username: root
+      password: root
+
+
