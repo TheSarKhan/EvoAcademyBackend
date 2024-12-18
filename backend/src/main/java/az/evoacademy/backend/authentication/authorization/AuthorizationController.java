@@ -5,11 +5,13 @@ import az.evoacademy.backend.authentication.dto.request.RegisterDTO;
 import az.evoacademy.backend.authentication.dto.response.TokenResponse;
 import az.evoacademy.backend.authentication.jwt.JwtUtil;
 import az.evoacademy.backend.authentication.dto.request.LoginDTO;
+import az.evoacademy.backend.authentication.redis.RedisService;
 import az.evoacademy.backend.dto.request.UserDTO;
 import az.evoacademy.backend.model.user.User;
 import az.evoacademy.backend.repository.user.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -24,6 +26,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("api/v1/auth")
+@RequiredArgsConstructor
 public class AuthorizationController {
 
     private final AuthenticationManager authenticationManager;
@@ -31,15 +34,7 @@ public class AuthorizationController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
-
-    public AuthorizationController(AuthenticationManager authenticationManager, JwtUtil jwtUtil,
-                                   UserRepository userRepository, PasswordEncoder passwordEncoder, AuthService authService) {
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authService = authService;
-    }
+private  final RedisService redisService;
 
     @PostMapping("/login")
     public TokenResponse login(@RequestBody LoginDTO request) {
@@ -88,7 +83,28 @@ public class AuthorizationController {
     }
 
     @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Auth endpoint is working!");
+    public ResponseEntity<String> test(@RequestHeader("Authorization") String token) {
+        try {
+            // "Bearer " kısmını çıkar
+            token = token.substring(7);
+
+            // Token'ı Redis'ten al
+            String email = jwtUtil.extractUsername(token);
+            String savedToken = redisService.getTokenFromRedis(email);
+
+            // Token geçerliliğini kontrol et
+            if (savedToken == null || !jwtUtil.isTokenValid(token, email)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Geçersiz veya süresi dolmuş token!");
+            }
+
+            // Token geçerli ise yanıt ver
+            return ResponseEntity.ok("Auth endpoint is working!");
+
+        } catch (Exception e) {
+            // Hata durumunda yanıt ver
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token doğrulama hatası: " + e.getMessage());
+        }
     }
+
+
 }

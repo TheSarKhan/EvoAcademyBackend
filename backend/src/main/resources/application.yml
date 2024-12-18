@@ -5,7 +5,13 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: update
-
+  data:
+   redis:
+    host: localhost
+    port: 6380  # Redis'in dış portu
+    password: redispass  # Redis için belirlenen şifre
+    timeout: 2000
+    database: 0
 
   datasource:
     first:
